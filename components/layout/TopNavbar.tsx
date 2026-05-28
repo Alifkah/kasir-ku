@@ -13,6 +13,8 @@ import {
   Sun,
   Moon,
   Type,
+  Menu,
+  X,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,6 +22,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from '@/components/ui/sheet';
+import Sidebar from './Sidebar';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -147,25 +156,42 @@ export default function TopNavbar() {
   };
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 border-b border-border/60 bg-background/80 backdrop-blur-sm sticky top-0 z-30 print:hidden">
-      {/* ── Left: Breadcrumb ── */}
-      <nav aria-label="breadcrumb" className="flex items-center gap-2 text-sm">
-        <Home className="w-4 h-4 text-muted-foreground" />
-        {breadcrumbs.map((crumb, idx) => (
-          <span key={crumb} className="flex items-center gap-2">
-            {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />}
-            <span
-              className={
-                idx === breadcrumbs.length - 1
-                  ? 'font-semibold text-foreground'
-                  : 'text-muted-foreground'
-              }
-            >
-              {crumb}
+    <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-border/60 bg-background/80 backdrop-blur-sm sticky top-0 z-30 print:hidden">
+      {/* ── Left: Menu trigger & Breadcrumb ── */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Sheet>
+          <SheetTrigger render={
+            <button className="lg:hidden p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors" title="Buka Menu">
+              <Menu className="w-5 h-5" />
+            </button>
+          } />
+          <SheetContent side="left" className="w-64 p-0 bg-sidebar border-r border-border/60" showCloseButton={false}>
+            <Sidebar showCloseButton />
+          </SheetContent>
+        </Sheet>
+
+        <nav aria-label="breadcrumb" className="hidden md:flex items-center gap-2 text-sm">
+          <Home className="w-4 h-4 text-muted-foreground" />
+          {breadcrumbs.map((crumb, idx) => (
+            <span key={crumb} className="flex items-center gap-2">
+              {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />}
+              <span
+                className={
+                  idx === breadcrumbs.length - 1
+                    ? 'font-semibold text-foreground'
+                    : 'text-muted-foreground'
+                }
+              >
+                {crumb}
+              </span>
             </span>
-          </span>
-        ))}
-      </nav>
+          ))}
+        </nav>
+        {/* On mobile, show current page title directly */}
+        <span className="md:hidden text-sm font-semibold text-foreground ml-1">
+          {breadcrumbs[breadcrumbs.length - 1]}
+        </span>
+      </div>
 
       {/* ── Right: Actions ── */}
       <div className="flex items-center gap-3">

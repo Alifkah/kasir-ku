@@ -17,7 +17,9 @@ import {
   Clock,
   Truck,
   Shield,
+  X,
 } from 'lucide-react';
+import { SheetClose } from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +44,7 @@ const NAV_LINKS = [
   { href: '/settings', label: 'Pengaturan', sublabel: 'Konfigurasi Sistem', icon: Settings },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ showCloseButton = false }: { showCloseButton?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const { outlets, activeOutlet, setActiveOutlet, currentUser, logout, activeShift } = useStore();
@@ -64,19 +66,29 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="flex flex-col h-full w-64 shrink-0 border-r border-border/60 bg-sidebar print:hidden">
+    <aside className="flex flex-col h-full w-full border-r border-border/60 bg-sidebar print:hidden">
       {/* ── Brand Header ── */}
-      <div className="px-4 pt-6 pb-4 border-b border-border/40">
-        <div className="flex items-center gap-2.5 mb-4">
+      <div className="px-4 pt-6 pb-4 border-b border-border/40 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-lg glow-primary shrink-0">
             <Store className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-base font-bold text-foreground tracking-tight">Kasir Ku</h1>
             <p className="text-xs text-muted-foreground">Multi-Outlet POS</p>
           </div>
         </div>
 
+        {showCloseButton && (
+          <SheetClose render={
+            <button className="p-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors shadow-sm shrink-0" title="Tutup Menu">
+              <X className="w-4 h-4" />
+            </button>
+          } />
+        )}
+      </div>
+
+      <div className="px-4 pt-4 pb-4 border-b border-border/40">
         {/* Outlet Selector Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger

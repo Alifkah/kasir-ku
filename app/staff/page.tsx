@@ -382,7 +382,7 @@ export default function StaffPage() {
           </div>
 
           {/* ── Table ── */}
-          <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+          <div className="rounded-xl border border-border/60 bg-card overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent">
@@ -502,7 +502,7 @@ export default function StaffPage() {
       ) : (
         <>
           {/* ── Shift History Table ── */}
-          <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+          <div className="rounded-xl border border-border/60 bg-card overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent text-xs">

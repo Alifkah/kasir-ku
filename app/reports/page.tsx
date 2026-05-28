@@ -775,7 +775,7 @@ export default function ReportsPage() {
 
         {showPLDetails && (
           <div className="p-5 space-y-4">
-            <div className="rounded-xl border border-border/40 bg-background/50 overflow-hidden">
+            <div className="rounded-xl border border-border/40 bg-background/50 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/30 hover:bg-transparent">
@@ -1034,7 +1034,8 @@ export default function ReportsPage() {
               <h3 className="font-semibold text-foreground">Detail Pengeluaran per Kategori</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Daftar beban operasional terperinci</p>
             </div>
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent">
                   <TableHead className="text-muted-foreground font-semibold">Kategori Pengeluaran</TableHead>
@@ -1070,6 +1071,7 @@ export default function ReportsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
           <div className="p-4 bg-secondary/10 border-t border-border/40 flex justify-between items-center text-xs">
             <span className="font-semibold text-foreground">Total Beban Operasional:</span>
@@ -1084,7 +1086,8 @@ export default function ReportsPage() {
           <h3 className="font-semibold text-foreground">Top 5 Produk Terlaris</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Berdasarkan volume penjualan & laba kotor</p>
         </div>
-        <Table>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow className="border-border/40 hover:bg-transparent">
               <TableHead className="text-muted-foreground font-semibold w-12">Rank</TableHead>
@@ -1137,7 +1140,8 @@ export default function ReportsPage() {
               ))
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
     </div>
   );

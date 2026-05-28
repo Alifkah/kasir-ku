@@ -51,7 +51,11 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <div className={`flex h-screen overflow-hidden bg-background print:h-auto print:overflow-visible ${isPublicPage ? 'w-screen overflow-hidden' : ''}`}>
       {/* Sidebar - only show if logged in and not on public pages */}
-      {!isPublicPage && currentUser && <Sidebar />}
+      {!isPublicPage && currentUser && (
+        <div className="hidden lg:flex h-full w-64 shrink-0">
+          <Sidebar />
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">

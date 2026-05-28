@@ -401,7 +401,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* ── Table ── */}
-      <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+      <div className="rounded-xl border border-border/60 bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-border/40 hover:bg-transparent">

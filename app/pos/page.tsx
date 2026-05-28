@@ -130,6 +130,7 @@ export default function POSPage() {
   const [selectedProductForCustomization, setSelectedProductForCustomization] = useState<Product | null>(null);
   const [variantModalOpen, setVariantModalOpen] = useState(false);
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
+  const [activePosTab, setActivePosTab] = useState<'products' | 'cart'>('products');
 
   // Enforce shift opening for cashiers
   useEffect(() => {
@@ -378,12 +379,12 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-7rem)] -m-6 overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100vh-7rem)] -m-4 lg:-m-6 overflow-hidden">
 
       {/* ═══════════════════════════════════════
           LEFT: Product Grid
       ═══════════════════════════════════════ */}
-      <div className="flex flex-col flex-1 min-w-0 p-6 overflow-hidden">
+      <div className={cn("flex flex-col flex-1 min-w-0 p-4 lg:p-6 overflow-hidden", activePosTab === 'products' ? 'flex' : 'hidden lg:flex')}>
         {/* Search + scanner */}
         <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
@@ -450,7 +451,7 @@ export default function POSPage() {
       {/* ═══════════════════════════════════════
           RIGHT: Cart Ledger
       ═══════════════════════════════════════ */}
-      <div className="w-96 shrink-0 flex flex-col border-l border-border/60 bg-card/50">
+      <div className={cn("w-full lg:w-96 shrink-0 flex flex-col border-l border-border/60 bg-card/50", activePosTab === 'cart' ? 'flex h-full' : 'hidden lg:flex')}>
         {/* Cart header */}
         <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -674,6 +675,37 @@ export default function POSPage() {
             Bayar / Konfirmasi Struk
           </button>
         </div>
+      </div>
+
+      {/* Mobile Tab Navigation Bar */}
+      <div className="lg:hidden shrink-0 border-t border-border/40 bg-zinc-950/45 p-2 flex gap-2">
+        <button
+          onClick={() => setActivePosTab('products')}
+          className={cn(
+            "flex-1 py-2.5 text-center rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5",
+            activePosTab === 'products'
+              ? "bg-primary text-white shadow-lg glow-primary"
+              : "bg-secondary/40 text-muted-foreground hover:text-foreground"
+          )}
+        >
+          🛍️ Produk ({filteredProducts.length})
+        </button>
+        <button
+          onClick={() => setActivePosTab('cart')}
+          className={cn(
+            "flex-1 py-2.5 text-center rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+            activePosTab === 'cart'
+              ? "bg-primary text-white shadow-lg glow-primary"
+              : "bg-secondary/40 text-muted-foreground hover:text-foreground"
+          )}
+        >
+          🛒 Keranjang ({cart.reduce((s, i) => s + i.quantity, 0)})
+          {cart.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-mono">
+              {formatIDR(total)}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* ═══════════════════════════════════════
