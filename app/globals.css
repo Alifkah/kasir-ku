@@ -1,0 +1,492 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono);
+  --font-heading: "Inter", system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-danger-muted: var(--danger-muted);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+/* ─────────────────────────────────────────────
+   KasirKu Design System — Light & Dark Mode
+   Primary: Indigo   Success: Emerald   Danger: Rose
+   Accessibility: Large text mode support
+   ───────────────────────────────────────────── */
+:root {
+  /* Light Mode (Default) */
+  --background: oklch(0.985 0.003 264);       /* Very light slate */
+  --foreground: oklch(0.14 0.006 264);        /* High contrast charcoal */
+  --card: oklch(1 0 0);                      /* Pure white */
+  --card-foreground: oklch(0.14 0.006 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.14 0.006 264);
+  --primary: oklch(0.585 0.233 264.5);       /* Indigo-500 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.005 264);        /* Light gray border/fill */
+  --secondary-foreground: oklch(0.25 0.01 264);
+  --muted: oklch(0.96 0.005 264);
+  --muted-foreground: oklch(0.42 0.012 264);  /* Highly readable dark gray */
+  --accent: oklch(0.92 0.02 264.5);
+  --accent-foreground: oklch(0.2 0.05 264.5);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.89 0.008 264);           /* Distinct, highly visible border */
+  --input: oklch(0.92 0.005 264);
+  --ring: oklch(0.585 0.233 264.5);
+
+  /* Charts */
+  --chart-1: oklch(0.585 0.233 264.5);
+  --chart-2: oklch(0.62 0.17 162.48);
+  --chart-3: oklch(0.72 0.18 70);
+  --chart-4: oklch(0.6 0.22 25);
+  --chart-5: oklch(0.603 0.211 292.72);
+
+  /* Radius */
+  --radius: 0.75rem;
+
+  /* Sidebar */
+  --sidebar: oklch(0.975 0.003 264);
+  --sidebar-foreground: oklch(0.14 0.006 264);
+  --sidebar-primary: oklch(0.585 0.233 264.5);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.92 0.01 264);
+  --sidebar-accent-foreground: oklch(0.15 0.01 264);
+  --sidebar-border: oklch(0.88 0.008 264);
+  --sidebar-ring: oklch(0.585 0.233 264.5);
+
+  /* Semantic tokens */
+  --success: oklch(0.62 0.17 162.48);
+  --success-muted: oklch(0.62 0.17 162.48 / 15%);
+  --warning: oklch(0.70 0.18 70);
+  --danger: oklch(0.6 0.22 25);
+  --danger-muted: oklch(0.6 0.22 25 / 15%);
+  --indigo-glow: oklch(0.585 0.233 264.5 / 15%);
+  --shadow-color: oklch(0 0 0 / 6%);
+}
+
+.dark {
+  /* Dark Mode Override (Previously default) */
+  --background: oklch(0.13 0.006 264);       /* Slate-950 */
+  --foreground: oklch(0.96 0.003 264);       /* Slate-50  */
+  --card: oklch(0.175 0.008 264);            /* Slate-900 */
+  --card-foreground: oklch(0.96 0.003 264);
+  --popover: oklch(0.19 0.009 264);
+  --popover-foreground: oklch(0.96 0.003 264);
+  --primary: oklch(0.585 0.233 264.5);       /* Indigo-500 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.22 0.01 264);
+  --secondary-foreground: oklch(0.82 0.01 264);
+  --muted: oklch(0.22 0.01 264);
+  --muted-foreground: oklch(0.62 0.015 264);
+  --accent: oklch(0.585 0.233 264.5);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.637 0.237 25.3);    /* Rose-500  */
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.28 0.012 264);
+  --input: oklch(0.24 0.01 264);
+  --ring: oklch(0.585 0.233 264.5);
+
+  /* Charts */
+  --chart-1: oklch(0.585 0.233 264.5);      /* Indigo  */
+  --chart-2: oklch(0.696 0.17 162.48);      /* Emerald */
+  --chart-3: oklch(0.769 0.188 70.08);      /* Amber   */
+  --chart-4: oklch(0.637 0.237 25.3);       /* Rose    */
+  --chart-5: oklch(0.603 0.211 292.72);     /* Purple  */
+
+  /* Sidebar */
+  --sidebar: oklch(0.155 0.008 264);
+  --sidebar-foreground: oklch(0.96 0.003 264);
+  --sidebar-primary: oklch(0.585 0.233 264.5);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.22 0.01 264);
+  --sidebar-accent-foreground: oklch(0.82 0.01 264);
+  --sidebar-border: oklch(0.26 0.012 264);
+  --sidebar-ring: oklch(0.585 0.233 264.5);
+
+  /* Semantic tokens */
+  --success: oklch(0.696 0.17 162.48);      /* Emerald-500 */
+  --success-muted: oklch(0.696 0.17 162.48 / 15%);
+  --warning: oklch(0.769 0.188 70.08);      /* Amber-400 */
+  --danger: oklch(0.637 0.237 25.3);        /* Rose-500  */
+  --danger-muted: oklch(0.637 0.237 25.3 / 15%);
+  --indigo-glow: oklch(0.585 0.233 264.5 / 30%);
+  --shadow-color: oklch(0 0 0 / 40%);
+}
+
+/* Theme color schemes mapping */
+html {
+  color-scheme: light;
+  transition: font-size 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Accessibility: Large Text scaling for older users */
+html.accessibility-large {
+  font-size: 19px; /* Scales everything using 'rem' units proportionally */
+}
+
+/* Smooth theme transition for layout and interactive elements */
+body, 
+aside, 
+header, 
+main, 
+.bg-card, 
+.bg-background, 
+.bg-zinc-900, 
+.bg-zinc-950, 
+.bg-slate-900, 
+.bg-black, 
+button, 
+input, 
+select, 
+textarea, 
+.nav-item, 
+.metric-card, 
+.glass-card, 
+.badge, 
+.border-border, 
+.border-zinc-800 {
+  transition: background-color 0.25s ease-out, border-color 0.25s ease-out, color 0.25s ease-out, box-shadow 0.25s ease-out;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" 32;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.35 0.015 264);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.45 0.02 264);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Utility Classes — KasirKu Design Tokens
+───────────────────────────────────────────── */
+@layer utilities {
+  /* Glass morphism cards */
+  .glass-card {
+    background: var(--card-glass, oklch(0.175 0.008 264 / 80%));
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glass, oklch(0.28 0.012 264 / 60%));
+  }
+
+  /* Indigo glow button state */
+  .glow-primary {
+    box-shadow: 0 0 20px oklch(0.585 0.233 264.5 / 40%);
+  }
+
+  .glow-emerald {
+    box-shadow: 0 0 20px oklch(0.696 0.17 162.48 / 40%);
+  }
+
+  /* Gradient texts */
+  .gradient-text {
+    background: linear-gradient(135deg, oklch(0.75 0.18 264.5), oklch(0.7 0.15 300));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Status badges */
+  .badge-success {
+    background: oklch(0.696 0.17 162.48 / 20%);
+    color: oklch(0.72 0.17 162.48);
+    border: 1px solid oklch(0.696 0.17 162.48 / 35%);
+  }
+
+  .badge-danger {
+    background: oklch(0.637 0.237 25.3 / 20%);
+    color: oklch(0.75 0.2 25.3);
+    border: 1px solid oklch(0.637 0.237 25.3 / 35%);
+  }
+
+  .badge-warning {
+    background: oklch(0.769 0.188 70.08 / 20%);
+    color: oklch(0.85 0.16 70);
+    border: 1px solid oklch(0.769 0.188 70.08 / 35%);
+  }
+
+  .badge-indigo {
+    background: oklch(0.585 0.233 264.5 / 20%);
+    color: oklch(0.75 0.18 264.5);
+    border: 1px solid oklch(0.585 0.233 264.5 / 35%);
+  }
+
+  /* Pulsing dot */
+  .pulse-emerald {
+    animation: pulse-emerald 2s infinite;
+  }
+
+  @keyframes pulse-emerald {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 oklch(0.696 0.17 162.48 / 70%); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px oklch(0.696 0.17 162.48 / 0%); }
+  }
+
+  /* Animated flash for low stock */
+  .flash-danger {
+    animation: flash-danger 1.5s ease-in-out infinite;
+  }
+
+  @keyframes flash-danger {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Sidebar nav item hover */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200;
+    color: var(--muted-foreground);
+  }
+
+  .nav-item:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+  }
+
+  .nav-item.active {
+    background: var(--accent);
+    color: var(--primary);
+    border-left: 3px solid var(--primary);
+  }
+
+  /* Metric card */
+  .metric-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px var(--shadow-color);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Light Mode Overrides for Hardcoded Dark Colors
+   ───────────────────────────────────────────── */
+html:not(.dark) {
+  /* Override bg-zinc-900 / bg-zinc-950 / bg-slate-900 / bg-black in light mode */
+  .bg-zinc-900, 
+  .bg-zinc-900\/60, 
+  .bg-zinc-900\/80, 
+  .bg-zinc-900\/90,
+  .bg-zinc-950\/60, 
+  .bg-zinc-950\/40, 
+  .bg-zinc-950\/20,
+  .bg-slate-900, 
+  .bg-slate-950 {
+    background-color: var(--card) !important;
+  }
+
+  body, 
+  .bg-background, 
+  .bg-zinc-950, 
+  .bg-slate-950,
+  .bg-black {
+    background-color: var(--background) !important;
+  }
+
+  /* Secondary backgrounds */
+  .bg-secondary\/50, 
+  .bg-zinc-950\/60 {
+    background-color: var(--secondary) !important;
+  }
+
+  /* Borders */
+  .border-zinc-800, 
+  .border-zinc-700,
+  .border-border\/20, 
+  .border-border\/40, 
+  .border-border\/60, 
+  .border-border {
+    border-color: var(--border) !important;
+  }
+
+  /* Text colors */
+  .text-zinc-400, 
+  .text-zinc-500, 
+  .text-slate-400,
+  .text-muted-foreground {
+    color: var(--muted-foreground) !important;
+  }
+
+  .text-zinc-100, 
+  .text-zinc-200, 
+  .text-zinc-300, 
+  .text-slate-200,
+  .text-foreground {
+    color: var(--foreground) !important;
+  }
+
+  /* Input fields placeholder */
+  input::placeholder {
+    color: var(--muted-foreground) !important;
+    opacity: 0.6;
+  }
+
+  /* Tooltip overrides */
+  .recharts-default-tooltip {
+    background-color: var(--card) !important;
+    border-color: var(--border) !important;
+    color: var(--foreground) !important;
+  }
+}
+
+/* Force override for custom color utilities to prevent browser defaults or theme mismatches */
+.bg-success {
+  background-color: var(--success) !important;
+}
+
+.bg-success:hover:not(:disabled) {
+  opacity: 0.9 !important;
+}
+
+.bg-warning {
+  background-color: var(--warning) !important;
+}
+
+.bg-danger {
+  background-color: var(--danger) !important;
+}
+
+/* Compact styling for tables inside dialogs/modals or sheets/drawers to fit narrow containers */
+[data-slot="dialog-content"] td,
+[data-slot="sheet-content"] td {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  padding-top: 0.625rem !important;
+  padding-bottom: 0.625rem !important;
+}
+
+[data-slot="dialog-content"] th,
+[data-slot="sheet-content"] th {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  height: 2.5rem !important;
+}
+
+/* Premium Membership Tier Badges styling */
+.badge-tier-gold {
+  background-color: oklch(0.97 0.04 85) !important;
+  color: oklch(0.48 0.15 80) !important;
+  border: 1px solid oklch(0.88 0.08 85) !important;
+}
+.dark .badge-tier-gold {
+  background-color: oklch(0.35 0.08 85 / 30%) !important;
+  color: oklch(0.78 0.15 85) !important;
+  border: 1px solid oklch(0.60 0.12 85 / 40%) !important;
+  box-shadow: 0 0 12px oklch(0.78 0.15 85 / 15%) !important;
+}
+
+.badge-tier-silver {
+  background-color: oklch(0.95 0.01 240) !important;
+  color: oklch(0.40 0.02 240) !important;
+  border: 1px solid oklch(0.86 0.02 240) !important;
+}
+.dark .badge-tier-silver {
+  background-color: oklch(0.30 0.01 240 / 30%) !important;
+  color: oklch(0.80 0.01 240) !important;
+  border: 1px solid oklch(0.55 0.02 240 / 40%) !important;
+}
+
+.badge-tier-bronze {
+  background-color: oklch(0.95 0.03 45) !important;
+  color: oklch(0.45 0.12 40) !important;
+  border: 1px solid oklch(0.87 0.06 45) !important;
+}
+.dark .badge-tier-bronze {
+  background-color: oklch(0.32 0.06 45 / 30%) !important;
+  color: oklch(0.72 0.12 45) !important;
+  border: 1px solid oklch(0.52 0.09 45 / 40%) !important;
+}
+
+.badge-tier-regular {
+  background-color: oklch(0.96 0.003 264) !important;
+  color: oklch(0.45 0.01 264) !important;
+  border: 1px solid oklch(0.89 0.005 264) !important;
+}
+.dark .badge-tier-regular {
+  background-color: oklch(0.22 0.008 264) !important;
+  color: oklch(0.75 0.01 264) !important;
+  border: 1px solid oklch(0.28 0.01 264) !important;
+}
