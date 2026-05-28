@@ -49,7 +49,7 @@ interface KasirKuStore {
   activeShift: ShiftSession | null;
   shiftsHistory: ShiftSession[];
   openShift: (initialCash: number) => Promise<void>;
-  closeShift: (actualCash: number, notes?: string) => Promise<void>;
+  closeShift: (actualCash: number, notes?: string) => Promise<ShiftSession | null>;
 
   // Business Profile & Settings
   businessProfile: BusinessProfile;
@@ -88,6 +88,8 @@ interface KasirKuStore {
   setVoucherDiscount: (amount: number) => void;
   selectedCustomer: Customer | null;
   setSelectedCustomer: (customer: Customer | null) => void;
+  pointsToRedeem: number;
+  setPointsToRedeem: (points: number) => void;
   activePromo: Promo | null;
   setActivePromo: (promo: Promo | null) => void;
 
@@ -368,6 +370,8 @@ export const useStore = create<KasirKuStore>()(
             memberDiscount: Number(tx.member_discount || 0),
             promoDiscount: Number(tx.promo_discount || 0),
             pointsEarned: Number(tx.points_earned || 0),
+            pointsRedeemed: Number(tx.points_redeemed || 0),
+            pointsDiscount: Number(tx.points_discount || 0),
             refundedAmount: Number(tx.refunded_amount || 0),
             items: (tx.transaction_items || []).map((item: any) => ({
               productId: item.product_id,
@@ -772,9 +776,9 @@ export const useStore = create<KasirKuStore>()(
         set({ activeShift: newShift });
       },
 
-      closeShift: async (actualCash, notes) => {
+      closeShift: async (actualCash, notes = '') => {
         const currentShift = get().activeShift;
-        if (!currentShift) return;
+        if (!currentShift) return null;
 
         const difference = actualCash - currentShift.expectedCash;
         const completedShift: ShiftSession = {
@@ -803,7 +807,7 @@ export const useStore = create<KasirKuStore>()(
               activeShift: null,
               shiftsHistory: [completedShift, ...get().shiftsHistory],
             });
-            return;
+            return completedShift;
           } catch (err) {
             console.error('Failed to close shift in Supabase:', err);
           }
@@ -814,6 +818,7 @@ export const useStore = create<KasirKuStore>()(
           activeShift: null,
           shiftsHistory: [completedShift, ...get().shiftsHistory],
         });
+        return completedShift;
       },
 
       // ── Business Profile & Settings ──────────
@@ -1343,10 +1348,12 @@ export const useStore = create<KasirKuStore>()(
           };
         }),
 
-      clearCart: () => set({ cart: [], voucherDiscount: 0, selectedCustomer: null, activePromo: null }),
+      clearCart: () => set({ cart: [], voucherDiscount: 0, selectedCustomer: null, activePromo: null, pointsToRedeem: 0 }),
 
       setVoucherDiscount: (amount) => set({ voucherDiscount: amount }),
-      setSelectedCustomer: (customer) => set({ selectedCustomer: customer }),
+      setSelectedCustomer: (customer) => set({ selectedCustomer: customer, pointsToRedeem: 0 }),
+      pointsToRedeem: 0,
+      setPointsToRedeem: (points) => set({ pointsToRedeem: points }),
       setActivePromo: (promo) => set({ activePromo: promo }),
 
       // ── Customers ─────────────────────────────
@@ -1818,6 +1825,8 @@ export const useStore = create<KasirKuStore>()(
                 member_discount: transaction.memberDiscount || 0,
                 promo_discount: transaction.promoDiscount || 0,
                 points_earned: transaction.pointsEarned || 0,
+                points_redeemed: transaction.pointsRedeemed || 0,
+                points_discount: transaction.pointsDiscount || 0,
                 refunded_amount: transaction.refundedAmount || 0,
               }
             ]);
@@ -1872,7 +1881,7 @@ export const useStore = create<KasirKuStore>()(
               const customer = get().customers.find(c => c.id === transaction.customerId);
               if (customer) {
                 await supabase.from('customers').update({
-                  points: customer.points + (transaction.pointsEarned || 0),
+                  points: Math.max(0, customer.points + (transaction.pointsEarned || 0) - (transaction.pointsRedeemed || 0)),
                   total_spent: customer.totalSpent + transaction.totalPaid,
                 }).eq('id', transaction.customerId);
               }
@@ -1888,6 +1897,7 @@ export const useStore = create<KasirKuStore>()(
                 .eq('id', updatedShift.id);
             }
 
+            set({ pointsToRedeem: 0 });
             await get().initializeData();
             return;
           } catch (err) {
@@ -1901,10 +1911,10 @@ export const useStore = create<KasirKuStore>()(
           if (transaction.customerId) {
             updatedCustomers = state.customers.map((c) => {
               if (c.id === transaction.customerId) {
-                const addedPoints = transaction.pointsEarned || 0;
+                const netPoints = (transaction.pointsEarned || 0) - (transaction.pointsRedeemed || 0);
                 return {
                   ...c,
-                  points: c.points + addedPoints,
+                  points: Math.max(0, c.points + netPoints),
                   totalSpent: c.totalSpent + transaction.totalPaid,
                 };
               }
@@ -1949,6 +1959,7 @@ export const useStore = create<KasirKuStore>()(
             products: updatedProducts,
             activeShift: updatedShift,
             stockLedger: [...newLedgerEntries, ...state.stockLedger],
+            pointsToRedeem: 0,
           };
         });
       },
@@ -2290,7 +2301,7 @@ export const useStore = create<KasirKuStore>()(
 // Computed Selectors
 // ─────────────────────────────────────────────
 export const useCartTotal = () => {
-  const { cart, voucherDiscount, taxSettings, selectedCustomer, activePromo } = useStore();
+  const { cart, voucherDiscount, taxSettings, selectedCustomer, activePromo, pointsToRedeem } = useStore();
   const subtotal = cart.reduce(
     (sum, item) => sum + item.product.sellingPrice * item.quantity,
     0
@@ -2313,7 +2324,8 @@ export const useCartTotal = () => {
     }
   }
 
-  const totalDiscount = memberDiscount + promoDiscount + voucherDiscount;
+  const pointsDiscount = (pointsToRedeem || 0) * 100;
+  const totalDiscount = memberDiscount + promoDiscount + voucherDiscount + pointsDiscount;
   const discountedSubtotal = Math.max(0, subtotal - totalDiscount);
 
   const taxAmount = taxSettings.ppnEnabled
@@ -2329,6 +2341,7 @@ export const useCartTotal = () => {
     memberDiscount,
     promoDiscount,
     voucherDiscount,
+    pointsDiscount,
     totalDiscount,
     taxAmount,
     total,

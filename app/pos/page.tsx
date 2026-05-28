@@ -85,6 +85,8 @@ export default function POSPage() {
     customers,
     selectedCustomer,
     setSelectedCustomer,
+    pointsToRedeem,
+    setPointsToRedeem,
     promos,
     activePromo,
     setActivePromo,
@@ -97,11 +99,16 @@ export default function POSPage() {
     subtotal,
     memberDiscount,
     promoDiscount,
+    pointsDiscount,
     totalDiscount,
     taxAmount,
     total,
     pointsEarned,
   } = useCartTotal();
+
+  const maxAmountBeforePoints = Math.max(0, subtotal - (memberDiscount + promoDiscount + voucherDiscount));
+  const maxPointsForPurchase = Math.floor(maxAmountBeforePoints / 100);
+  const maxAllowedToRedeem = selectedCustomer ? Math.min(selectedCustomer.points, maxPointsForPurchase) : 0;
 
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<ProductCategory | 'Semua'>('Semua');
@@ -338,6 +345,8 @@ export default function POSPage() {
       memberDiscount,
       promoDiscount,
       pointsEarned,
+      pointsRedeemed: pointsToRedeem || 0,
+      pointsDiscount: pointsDiscount || 0,
     };
 
     addTransaction(transaction);
@@ -642,6 +651,12 @@ export default function POSPage() {
                 <span>- {formatIDR(voucherDiscount)}</span>
               </div>
             )}
+            {pointsDiscount > 0 && (
+              <div className="flex justify-between text-success">
+                <span>Tukar Poin Member</span>
+                <span>- {formatIDR(pointsDiscount)}</span>
+              </div>
+            )}
             {taxSettings.ppnEnabled && (
               <div className="flex justify-between text-muted-foreground">
                 <span>PPN ({(taxSettings.ppnRate * 100).toFixed(0)}%)</span>
@@ -873,6 +888,66 @@ export default function POSPage() {
                 <p className="text-sm text-muted-foreground mb-1">Total Pembayaran</p>
                 <p className="text-3xl font-extrabold text-primary">{formatIDR(Math.max(0, total))}</p>
               </div>
+
+              {/* Loyalty Points Redemption (Tukar Poin) */}
+              {selectedCustomer && selectedCustomer.points > 0 && (
+                <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-indigo-400">Poin Loyalitas Member</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Tersedia: <span className="font-bold text-foreground">{selectedCustomer.points} Poin</span> (Rp {selectedCustomer.points * 100})
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="use-points-switch"
+                        type="checkbox"
+                        checked={pointsToRedeem > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setPointsToRedeem(maxAllowedToRedeem);
+                          } else {
+                            setPointsToRedeem(0);
+                          }
+                        }}
+                        className="w-4 h-4 text-primary bg-background border-border/60 rounded cursor-pointer"
+                      />
+                      <label htmlFor="use-points-switch" className="text-xs font-semibold text-foreground cursor-pointer">
+                        Gunakan Poin
+                      </label>
+                    </div>
+                  </div>
+
+                  {pointsToRedeem > 0 && (
+                    <div className="space-y-1.5 pt-1 border-t border-indigo-500/20">
+                      <div className="flex items-center justify-between gap-3">
+                        <label htmlFor="points-input" className="text-[11px] text-muted-foreground font-semibold">
+                          Jumlah Poin Ditukar:
+                        </label>
+                        <div className="flex items-center gap-1.5 max-w-[120px]">
+                          <Input
+                            id="points-input"
+                            type="number"
+                            min={1}
+                            max={maxAllowedToRedeem}
+                            value={pointsToRedeem}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10) || 0;
+                              setPointsToRedeem(Math.max(0, Math.min(maxAllowedToRedeem, val)));
+                            }}
+                            className="h-8 text-center text-xs font-bold bg-background border-border/60 p-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-muted-foreground">Potongan Belanja:</span>
+                        <span className="font-bold text-success">- {formatIDR(pointsToRedeem * 100)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Payment method */}
               <div>

@@ -16,7 +16,9 @@ import {
   Check,
   Search,
   History,
+  Printer,
 } from 'lucide-react';
+import { printShiftReport } from '@/lib/exportUtils';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -106,7 +108,7 @@ const ALL_PERMISSIONS: { key: PermissionKey; label: string; group: string; descr
 ];
 
 export default function StaffPage() {
-  const { users, addUser, updateUser, deleteUser, shiftsHistory, currentUser, outlets } = useStore();
+  const { users, addUser, updateUser, deleteUser, shiftsHistory, currentUser, outlets, transactions } = useStore();
 
   const [activeTab, setActiveTab] = useState<'staff' | 'shifts'>('staff');
   const [search, setSearch] = useState('');
@@ -515,6 +517,7 @@ export default function StaffPage() {
                   <TableHead className="text-muted-foreground font-semibold text-right pr-4">Selisih</TableHead>
                   <TableHead className="text-muted-foreground font-semibold">Status</TableHead>
                   <TableHead className="text-muted-foreground font-semibold">Catatan</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-right pr-6">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -571,6 +574,15 @@ export default function StaffPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground max-w-xs truncate" title={shift.notes}>
                           {shift.notes || '—'}
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <button
+                            onClick={() => printShiftReport(shift, transactions)}
+                            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors ml-auto cursor-pointer"
+                            title="Cetak Rekap / Z-Report"
+                          >
+                            <Printer size={14} />
+                          </button>
                         </TableCell>
                       </TableRow>
                     );

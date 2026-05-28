@@ -113,6 +113,8 @@ export interface Transaction {
   memberDiscount?: number;
   promoDiscount?: number;
   pointsEarned?: number;
+  pointsRedeemed?: number;
+  pointsDiscount?: number;
   refundedAmount?: number; // Total nominal yang di-refund
 }
 

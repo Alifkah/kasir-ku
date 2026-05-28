@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { formatIDR } from '@/data/mockData';
+import { printShiftReport } from '@/lib/exportUtils';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -23,14 +25,16 @@ interface ShiftModalProps {
 }
 
 export default function ShiftModal({ isOpen, onOpenChange, mode }: ShiftModalProps) {
-  const { activeShift, openShift, closeShift, currentUser } = useStore();
+  const { activeShift, openShift, closeShift, currentUser, transactions } = useStore();
   const [cashAmount, setCashAmount] = useState('');
   const [notes, setNotes] = useState('');
+  const [closedShiftData, setClosedShiftData] = useState<any>(null);
 
   // Reset inputs when modal state or mode changes
   useEffect(() => {
     setCashAmount('');
     setNotes('');
+    setClosedShiftData(null);
   }, [isOpen, mode]);
 
   const handleOpenShiftSubmit = (e: React.FormEvent) => {
@@ -45,28 +49,111 @@ export default function ShiftModal({ isOpen, onOpenChange, mode }: ShiftModalPro
     onOpenChange(false);
   };
 
-  const handleCloseShiftSubmit = (e: React.FormEvent) => {
+  const handleCloseShiftSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseInt(cashAmount.replace(/\D/g, ''), 10);
     if (isNaN(amount) || amount < 0) {
       toast.error('Jumlah uang fisik laci harus angka valid');
       return;
     }
-    closeShift(amount, notes);
-    const expected = activeShift?.expectedCash || 0;
-    const diff = amount - expected;
+    const result = await closeShift(amount, notes);
+    if (result) {
+      setClosedShiftData(result);
+      const expected = result.expectedCash;
+      const diff = amount - expected;
 
-    if (diff === 0) {
-      toast.success('Shift berhasil ditutup! Kas cocok.');
-    } else if (diff > 0) {
-      toast.warning(`Shift ditutup dengan kelebihan kas sebesar ${formatIDR(diff)}`);
+      if (diff === 0) {
+        toast.success('Shift berhasil ditutup! Kas cocok.');
+      } else if (diff > 0) {
+        toast.warning(`Shift ditutup dengan kelebihan kas sebesar ${formatIDR(diff)}`);
+      } else {
+        toast.error(`Shift ditutup dengan selisih kurang kas sebesar ${formatIDR(Math.abs(diff))}`);
+      }
     } else {
-      toast.error(`Shift ditutup dengan selisih kurang kas sebesar ${formatIDR(Math.abs(diff))}`);
+      onOpenChange(false);
     }
-    onOpenChange(false);
   };
 
   const isForceBlock = mode === 'open' && currentUser?.role === 'Cashier' && !activeShift;
+
+  if (closedShiftData) {
+    const diff = closedShiftData.difference || 0;
+    return (
+      <Dialog 
+        open={isOpen} 
+        onOpenChange={(open) => {
+          onOpenChange(open);
+        }}
+      >
+        <DialogContent className="max-w-md bg-card border-border/60">
+          <DialogHeader>
+            <div className="mx-auto my-2 w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center text-success">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-center">
+              Shift Berhasil Ditutup
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs text-muted-foreground">
+              Sesi kerja Anda telah dinonaktifkan secara aman. Silakan serahkan laporan penutupan kas berikut ke supervisor.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4 rounded-xl bg-zinc-950/40 border border-border/30 space-y-3 text-sm my-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>ID Shift:</span>
+              <span className="font-mono text-foreground">{closedShiftData.id}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Waktu Kerja:</span>
+              <span className="text-foreground flex flex-col items-end">
+                <span>Buka: {new Date(closedShiftData.startTime).toLocaleString('id-ID')}</span>
+                <span>Tutup: {new Date(closedShiftData.endTime).toLocaleString('id-ID')}</span>
+              </span>
+            </div>
+            <div className="h-px bg-border/20" />
+            <div className="flex justify-between text-muted-foreground">
+              <span>Modal Awal:</span>
+              <span className="font-semibold text-foreground">{formatIDR(closedShiftData.initialCash)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Ekspektasi Kas Laci:</span>
+              <span className="font-semibold text-foreground">{formatIDR(closedShiftData.expectedCash)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Uang Fisik Aktual:</span>
+              <span className="font-semibold text-foreground">{formatIDR(closedShiftData.actualCash)}</span>
+            </div>
+            <div className="h-px bg-border/20" />
+            <div className="flex justify-between">
+              <span className="font-semibold text-muted-foreground">Selisih Kas:</span>
+              <span className={cn(
+                'font-bold',
+                diff === 0 ? 'text-success' : diff > 0 ? 'text-indigo-400' : 'text-destructive'
+              )}>
+                {diff === 0 ? 'Cocok (Rp 0)' : diff > 0 ? `Surplus +${formatIDR(diff)}` : `Defisit -${formatIDR(Math.abs(diff))}`}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <Button
+              onClick={() => printShiftReport(closedShiftData, transactions)}
+              className="w-full py-2.5 bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg glow-indigo"
+            >
+              <DollarSign className="w-4 h-4" /> Cetak Z-Report (Tutup Shift)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="w-full py-2.5 border-border hover:bg-secondary text-foreground font-semibold cursor-pointer"
+            >
+              Selesai & Keluar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog 

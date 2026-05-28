@@ -496,3 +496,164 @@ export function exportCustomersToCSV(customers: Customer[], filename = 'Daftar_P
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Print a cashier shift session summary (Z-Report) as a thermal receipt (58mm/80mm).
+ * Opens a standalone HTML window and triggers the browser print dialog.
+ */
+export function printShiftReport(
+  shift: any,
+  transactions: Transaction[],
+  opts?: {
+    businessName?: string;
+    outletName?: string;
+    paperWidth?: '58mm' | '80mm';
+  }
+) {
+  const w = opts?.paperWidth ?? '80mm';
+  const bizName = opts?.businessName ?? '★ KASIRKU POS ★';
+  const outlet = opts?.outletName ?? 'Outlet Utama';
+
+  // Filter transactions within shift timeframe and matching this cashier name
+  const shiftTransactions = transactions.filter(tx => {
+    const txTime = new Date(tx.timestamp).getTime();
+    const startTime = new Date(shift.startTime).getTime();
+    const endTime = shift.endTime ? new Date(shift.endTime).getTime() : Date.now();
+    return txTime >= startTime && txTime <= endTime && tx.cashierName === shift.cashierName;
+  });
+
+  const totalTransactionsCount = shiftTransactions.length;
+  const totalSalesAmount = shiftTransactions.reduce((sum, tx) => sum + (tx.status === 'Sukses' ? tx.totalPaid : 0), 0);
+  const totalRefundAmount = shiftTransactions.reduce((sum, tx) => sum + (tx.refundedAmount || 0), 0);
+  
+  // Sales by payment method
+  const cashSales = shiftTransactions
+    .filter(tx => tx.paymentMethod === 'Tunai' && tx.status === 'Sukses')
+    .reduce((sum, tx) => sum + tx.totalPaid, 0);
+
+  const debitSales = shiftTransactions
+    .filter(tx => tx.paymentMethod === 'Debit/Kredit' && tx.status === 'Sukses')
+    .reduce((sum, tx) => sum + tx.totalPaid, 0);
+
+  const qrisSales = shiftTransactions
+    .filter(tx => tx.paymentMethod === 'QRIS' && tx.status === 'Sukses')
+    .reduce((sum, tx) => sum + tx.totalPaid, 0);
+
+  const startStr = new Date(shift.startTime).toLocaleString('id-ID');
+  const endStr = shift.endTime 
+    ? new Date(shift.endTime).toLocaleString('id-ID')
+    : 'Aktif (Belum Tutup)';
+
+  const expected = shift.expectedCash;
+  const actual = shift.actualCash ?? 0;
+  const diff = shift.difference ?? (actual - expected);
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Rekap Shift #${shift.id}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: ${w} auto; margin: 3mm 4mm; }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    color: #000;
+    background: #fff;
+    width: ${w};
+    padding: 0;
+  }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .header { text-align: center; margin-bottom: 6px; }
+  .header .brand { font-size: 14px; font-weight: 900; letter-spacing: 1px; }
+  .header .outlet { font-size: 11px; font-weight: bold; margin-top: 2px; }
+  .divider { border-top: 1px dashed #000; margin: 5px 0; }
+  .divider-dot { border-top: 1px dotted #000; margin: 4px 0; }
+  .meta { font-size: 10px; color: #333; margin: 4px 0; }
+  .meta-row { display: flex; justify-content: space-between; }
+  .row { display: flex; justify-content: space-between; font-size: 11px; margin: 2px 0; }
+  .row.bold { font-weight: bold; font-size: 12px; margin-top: 4px; }
+  .row.red { color: #cc0000; font-weight: bold; }
+  .row.green { color: #008800; font-weight: bold; }
+  .footer { text-align: center; font-size: 9px; color: #555; margin-top: 12px; border-top: 1px dashed #000; padding-top: 6px; }
+  .sig-box { margin-top: 20px; display: flex; justify-content: space-between; font-size: 10px; }
+  .sig-line { border-top: 1px solid #000; width: 45%; margin-top: 35px; text-align: center; padding-top: 2px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">${bizName}</div>
+    <div class="outlet">${outlet}</div>
+    <div class="bold" style="margin-top: 4px; font-size: 11px;">LAPORAN SHIFT KASIR (Z-REPORT)</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="meta">
+    <div class="meta-row"><span>ID Shift</span><span>${shift.id}</span></div>
+    <div class="meta-row"><span>Kasir</span><span>${shift.cashierName}</span></div>
+    <div class="meta-row"><span>Waktu Buka</span><span>${startStr}</span></div>
+    <div class="meta-row"><span>Waktu Tutup</span><span>${endStr}</span></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="bold" style="font-size: 10px; margin-bottom: 2px;">RINCIAN KAS (LACI UANG):</div>
+  <div class="row"><span>Modal Tunai Awal</span><span>${formatIDR(shift.initialCash)}</span></div>
+  <div class="row"><span>Penjualan Tunai</span><span>+ ${formatIDR(cashSales)}</span></div>
+  <div class="divider-dot"></div>
+  <div class="row bold"><span>Ekspektasi Uang Laci</span><span>${formatIDR(expected)}</span></div>
+  <div class="row"><span>Uang Fisik Laci</span><span>${shift.endTime ? formatIDR(actual) : '—'}</span></div>
+  <div class="divider-dot"></div>
+  
+  ${shift.endTime ? `
+    <div class="row bold ${diff === 0 ? 'green' : diff > 0 ? 'green' : 'red'}">
+      <span>Selisih Kas</span>
+      <span>${diff === 0 ? 'Cocok (Rp 0)' : diff > 0 ? `Surplus +${formatIDR(diff)}` : `Defisit -${formatIDR(Math.abs(diff))}`}</span>
+    </div>
+  ` : ''}
+
+  <div class="divider"></div>
+
+  <div class="bold" style="font-size: 10px; margin-bottom: 2px;">RINGKASAN PENJUALAN:</div>
+  <div class="row"><span>Total Transaksi</span><span>${totalTransactionsCount} x</span></div>
+  <div class="row"><span>Total Omset (Sukses)</span><span>${formatIDR(totalSalesAmount)}</span></div>
+  <div class="row"><span>Total Retur</span><span>- ${formatIDR(totalRefundAmount)}</span></div>
+
+  <div class="divider-dot"></div>
+  <div class="bold" style="font-size: 9px; margin-top: 4px; margin-bottom: 2px;">METODE PEMBAYARAN:</div>
+  <div class="row"><span>Tunai</span><span>${formatIDR(cashSales)}</span></div>
+  <div class="row"><span>Debit/Kredit</span><span>${formatIDR(debitSales)}</span></div>
+  <div class="row"><span>QRIS</span><span>${formatIDR(qrisSales)}</span></div>
+
+  ${shift.notes ? `
+    <div class="divider"></div>
+    <div class="bold" style="font-size: 10px;">Catatan:</div>
+    <div style="font-size: 10px; font-style: italic; white-space: pre-line; margin-top: 2px;">${shift.notes}</div>
+  ` : ''}
+
+  <div class="sig-box">
+    <div class="sig-line">Kasir<br/>(${shift.cashierName})</div>
+    <div class="sig-line">Supervisor / Owner<br/>(............... )</div>
+  </div>
+
+  <div class="footer">
+    KasirKu POS System<br/>
+    Dicetak pada: ${new Date().toLocaleString('id-ID')}
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=400,height=600');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => {
+      win.focus();
+      win.print();
+    }, 300);
+  }
+}
+
