@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Package, AlertCircle, History, Sliders } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Search, Edit2, Trash2, Package, AlertCircle, History, Sliders, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useStore } from '@/store/useStore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Product, ProductCategory, ProductVariant, ProductModifier } from '@/types/pos';
 import { formatIDR } from '@/data/mockData';
 import { cn } from '@/lib/utils';
@@ -58,7 +59,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function InventoryPage() {
-  const { products, addProduct, updateProduct, deleteProduct, adjustStockManual, activeOutlet, stockLedger, currentUser } = useStore();
+  const { products, addProduct, updateProduct, deleteProduct, adjustStockManual, activeOutlet, stockLedger, currentUser, outlets } = useStore();
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('Semua');
@@ -104,6 +105,37 @@ export default function InventoryPage() {
     setOpnameOpen(false);
     toast.success(`Berhasil menyesuaikan stok ${opnameProduct.name}`);
   };
+
+  // Combined Stock Ledger states
+  const [ledgerSearch, setLedgerSearch] = useState('');
+  const [ledgerActivityFilter, setLedgerActivityFilter] = useState('Semua');
+  const [ledgerOutletFilter, setLedgerOutletFilter] = useState('Semua');
+  const [ledgerPage, setLedgerPage] = useState(1);
+  const ledgerItemsPerPage = 15;
+
+  const filteredLedger = useMemo(() => {
+    return stockLedger.filter((entry) => {
+      const matchSearch =
+        entry.productName.toLowerCase().includes(ledgerSearch.toLowerCase()) ||
+        entry.sku.toLowerCase().includes(ledgerSearch.toLowerCase()) ||
+        (entry.referenceId && entry.referenceId.toLowerCase().includes(ledgerSearch.toLowerCase()));
+        
+      const matchActivity =
+        ledgerActivityFilter === 'Semua' || entry.changeType === ledgerActivityFilter;
+        
+      const matchOutlet =
+        ledgerOutletFilter === 'Semua' || entry.outletId === ledgerOutletFilter;
+        
+      return matchSearch && matchActivity && matchOutlet;
+    });
+  }, [stockLedger, ledgerSearch, ledgerActivityFilter, ledgerOutletFilter]);
+
+  const paginatedLedger = useMemo(() => {
+    const startIndex = (ledgerPage - 1) * ledgerItemsPerPage;
+    return filteredLedger.slice(startIndex, startIndex + ledgerItemsPerPage);
+  }, [filteredLedger, ledgerPage]);
+
+  const totalLedgerPages = Math.ceil(filteredLedger.length / ledgerItemsPerPage) || 1;
 
   // Form state
   const [form, setForm] = useState({
@@ -393,7 +425,14 @@ export default function InventoryPage() {
         )}
       </div>
 
-      {/* ── Alert cards ── */}
+      <Tabs defaultValue="products" className="space-y-6">
+        <TabsList className="bg-card border border-border/60 p-1 h-auto flex flex-wrap gap-1 w-fit">
+          <TabsTrigger value="products">Daftar Barang</TabsTrigger>
+          <TabsTrigger value="stock-ledger">Kartu Stok Gabungan</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products" className="space-y-6">
+          {/* ── Alert cards ── */}
       {(lowStockCount > 0 || outOfStockCount > 0) && (
         <div className="flex gap-3">
           {lowStockCount > 0 && (
@@ -583,6 +622,168 @@ export default function InventoryPage() {
           </TableBody>
         </Table>
       </div>
+        </TabsContent>
+
+        <TabsContent value="stock-ledger" className="space-y-6">
+          {/* ── Filters ── */}
+          <div className="flex gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="ledger-search"
+                placeholder="Cari nama barang, SKU, atau ref..."
+                value={ledgerSearch}
+                onChange={(e) => {
+                  setLedgerSearch(e.target.value);
+                  setLedgerPage(1);
+                }}
+                className="pl-10 bg-card border-border/60"
+              />
+            </div>
+            
+            {/* Activity Filter */}
+            <Select value={ledgerActivityFilter} onValueChange={(v) => {
+              setLedgerActivityFilter(v || 'Semua');
+              setLedgerPage(1);
+            }}>
+              <SelectTrigger id="ledger-activity-filter" className="w-48 bg-card border-border/60">
+                <SelectValue placeholder="Aktivitas" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border">
+                <SelectItem value="Semua">Semua Aktivitas</SelectItem>
+                <SelectItem value="Penjualan">Penjualan POS</SelectItem>
+                <SelectItem value="Opname">Opname (Koreksi)</SelectItem>
+                <SelectItem value="Penerimaan PO">Penerimaan PO</SelectItem>
+                <SelectItem value="Retur Penjualan">Retur Penjualan</SelectItem>
+                <SelectItem value="Tambah Produk">Tambah Produk</SelectItem>
+                <SelectItem value="Edit Produk">Edit Produk</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Outlet Filter (Owner only) */}
+            {currentUser?.role === 'Owner' && (
+              <Select value={ledgerOutletFilter} onValueChange={(v) => {
+                setLedgerOutletFilter(v || 'Semua');
+                setLedgerPage(1);
+              }}>
+                <SelectTrigger id="ledger-outlet-filter" className="w-48 bg-card border-border/60">
+                  <SelectValue placeholder="Outlet / Cabang" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="Semua">Semua Outlet</SelectItem>
+                  {outlets.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* ── Table ── */}
+          <div className="rounded-xl border border-border/60 bg-card overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent text-xs">
+                  <TableHead className="text-muted-foreground font-semibold">Waktu</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold">Barang</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold">Outlet</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold">Aktivitas</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-right pr-6">Perubahan</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-center">Stok Akhir</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold">Petugas</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold">Referensi & Catatan</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedLedger.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground text-xs">
+                      <History className="w-10 h-10 mx-auto mb-3 opacity-30 animate-pulse" />
+                      <p>Tidak ada riwayat pergerakan stok ditemukan</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedLedger.map((entry) => {
+                    const entryOutletName = outlets.find(o => o.id === entry.outletId)?.name || entry.outletId;
+                    const isPositive = entry.quantityChange > 0;
+                    
+                    let activityBadge = "bg-secondary/40 text-muted-foreground";
+                    if (entry.changeType === 'Penjualan') activityBadge = "badge-indigo border-0";
+                    else if (entry.changeType === 'Penerimaan PO') activityBadge = "badge-success border-0";
+                    else if (entry.changeType === 'Retur Penjualan') activityBadge = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                    else if (entry.changeType === 'Penyesuaian Manual') activityBadge = "badge-warning border-0";
+
+                    return (
+                      <TableRow key={entry.id} className="border-border/20 text-xs hover:bg-secondary/10">
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          {format(new Date(entry.timestamp), 'dd MMM yyyy, HH:mm', { locale: id })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-foreground">{entry.productName}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">{entry.sku}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground">{entryOutletName}</TableCell>
+                        <TableCell>
+                          <Badge className={cn('text-[10px] px-1.5 py-0.5 font-bold', activityBadge)}>
+                            {entry.changeType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className={cn(
+                          'text-right font-bold pr-6 text-sm',
+                          isPositive ? 'text-emerald-500' : 'text-rose-500'
+                        )}>
+                          {isPositive ? `+${entry.quantityChange}` : entry.quantityChange}
+                        </TableCell>
+                        <TableCell className="text-center font-mono font-bold text-foreground">
+                          {entry.stockAfter}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{entry.createdBy}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground" title={entry.notes || entry.referenceId || '-'}>
+                          {entry.notes || entry.referenceId || '-'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* ── Pagination ── */}
+          {totalLedgerPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-xs text-muted-foreground">
+                Menampilkan {paginatedLedger.length} dari {filteredLedger.length} riwayat stok
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="w-8 h-8 border-border/60 cursor-pointer"
+                  onClick={() => setLedgerPage(Math.max(1, ledgerPage - 1))}
+                  disabled={ledgerPage === 1}
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <span className="text-xs font-semibold text-foreground px-2">
+                  Halaman {ledgerPage} dari {totalLedgerPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="w-8 h-8 border-border/60 cursor-pointer"
+                  onClick={() => setLedgerPage(Math.min(totalLedgerPages, ledgerPage + 1))}
+                  disabled={ledgerPage === totalLedgerPages}
+                >
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* ── Add/Edit Product Sheet ── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

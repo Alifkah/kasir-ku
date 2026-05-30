@@ -17,6 +17,7 @@ import {
   ProductModifier,
   StockLedgerEntry,
   BusinessProfile,
+  PendingOrder,
 } from '@/types/pos';
 import {
   mockOutlets,
@@ -92,6 +93,10 @@ interface KasirKuStore {
   setPointsToRedeem: (points: number) => void;
   activePromo: Promo | null;
   setActivePromo: (promo: Promo | null) => void;
+  pendingOrders: PendingOrder[];
+  savePendingOrder: (note: string) => void;
+  loadPendingOrder: (id: string) => void;
+  deletePendingOrder: (id: string) => void;
 
   // Customers
   customers: Customer[];
@@ -1189,6 +1194,7 @@ export const useStore = create<KasirKuStore>()(
       voucherDiscount: 0,
       selectedCustomer: null,
       activePromo: null,
+      pendingOrders: [],
 
       addToCart: (product, selectedVariant, selectedModifiers) =>
         set((state) => {
@@ -1355,6 +1361,47 @@ export const useStore = create<KasirKuStore>()(
       pointsToRedeem: 0,
       setPointsToRedeem: (points) => set({ pointsToRedeem: points }),
       setActivePromo: (promo) => set({ activePromo: promo }),
+
+      savePendingOrder: (note) =>
+        set((state) => {
+          const newOrder: PendingOrder = {
+            id: `PENDING-${Date.now()}`,
+            note: note || 'Tanpa Catatan',
+            timestamp: new Date(),
+            items: [...state.cart],
+            customer: state.selectedCustomer,
+            activePromo: state.activePromo,
+            pointsToRedeem: state.pointsToRedeem,
+            voucherDiscount: state.voucherDiscount,
+          };
+          return {
+            pendingOrders: [newOrder, ...state.pendingOrders],
+            cart: [],
+            selectedCustomer: null,
+            activePromo: null,
+            pointsToRedeem: 0,
+            voucherDiscount: 0,
+          };
+        }),
+
+      loadPendingOrder: (id) =>
+        set((state) => {
+          const order = state.pendingOrders.find((o) => o.id === id);
+          if (!order) return {};
+          return {
+            cart: order.items,
+            selectedCustomer: order.customer,
+            activePromo: order.activePromo,
+            pointsToRedeem: order.pointsToRedeem,
+            voucherDiscount: order.voucherDiscount,
+            pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
+          };
+        }),
+
+      deletePendingOrder: (id) =>
+        set((state) => ({
+          pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
+        })),
 
       // ── Customers ─────────────────────────────
       customers: mockCustomers,
@@ -2041,6 +2088,18 @@ export const useStore = create<KasirKuStore>()(
                 .eq('id', updatedShift.id);
             }
 
+            // 5. Adjust Customer Points and Spent
+            if (tx.customerId) {
+              const customer = get().customers.find(c => c.id === tx.customerId);
+              if (customer) {
+                const pointsDeducted = Math.floor(refundAmount / 10000);
+                await supabase.from('customers').update({
+                  points: Math.max(0, customer.points - pointsDeducted),
+                  total_spent: Math.max(0, customer.totalSpent - refundAmount),
+                }).eq('id', tx.customerId);
+              }
+            }
+
             await get().initializeData();
             return;
           } catch (err) {
@@ -2116,10 +2175,25 @@ export const useStore = create<KasirKuStore>()(
             };
           }
 
+          let updatedCustomers = state.customers;
+          if (tx.customerId) {
+            const pointsDeducted = Math.floor(refundAmount / 10000);
+            updatedCustomers = state.customers.map((c) =>
+              c.id === tx.customerId
+                ? {
+                    ...c,
+                    points: Math.max(0, c.points - pointsDeducted),
+                    totalSpent: Math.max(0, c.totalSpent - refundAmount),
+                  }
+                : c
+            );
+          }
+
           return {
             transactions: updatedTransactions,
             products: updatedProducts,
             activeShift: updatedShift,
+            customers: updatedCustomers,
             stockLedger: newLedgerEntry 
               ? [newLedgerEntry, ...state.stockLedger] 
               : state.stockLedger,

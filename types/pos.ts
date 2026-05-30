@@ -118,6 +118,17 @@ export interface Transaction {
   refundedAmount?: number; // Total nominal yang di-refund
 }
 
+export interface PendingOrder {
+  id: string;
+  note: string;
+  timestamp: Date;
+  items: CartItem[];
+  customer: Customer | null;
+  activePromo: Promo | null;
+  pointsToRedeem: number;
+  voucherDiscount: number;
+}
+
 // ─────────────────────────────────────────────
 // Expense
 // ─────────────────────────────────────────────

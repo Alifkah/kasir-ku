@@ -19,11 +19,19 @@ export default function AppShell({ children }: AppShellProps) {
 
   const isPublicPage = pathname === '/login' || pathname === '/register';
 
-  // Load accessibility large text preference on mount
+  // Load accessibility large text preference and register service worker on mount
   useEffect(() => {
     const savedLargeText = localStorage.getItem('accessibility-large-text') === 'true';
     if (savedLargeText) {
       document.documentElement.classList.add('accessibility-large');
+    }
+
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => console.log('Service Worker registered with scope:', reg.scope))
+          .catch((err) => console.error('Service Worker registration failed:', err));
+      });
     }
   }, []);
 

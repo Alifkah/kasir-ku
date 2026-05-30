@@ -93,6 +93,10 @@ export default function POSPage() {
     currentUser,
     activeShift,
     businessProfile,
+    pendingOrders,
+    savePendingOrder,
+    loadPendingOrder,
+    deletePendingOrder,
   } = useStore();
 
   const {
@@ -113,6 +117,11 @@ export default function POSPage() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<ProductCategory | 'Semua'>('Semua');
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  
+  // Pending orders states
+  const [pendingOpen, setPendingOpen] = useState(false);
+  const [savePendingOpen, setSavePendingOpen] = useState(false);
+  const [pendingNote, setPendingNote] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('Tunai');
   const [voucherInput, setVoucherInput] = useState('');
   const [cashInput, setCashInput] = useState('');
@@ -216,6 +225,24 @@ export default function POSPage() {
     const discount = parseInt(voucherInput.replace(/\D/g, ''), 10) || 0;
     setVoucherDiscount(discount);
     toast.success(`Voucher diskon ${formatIDR(discount)} diterapkan`);
+  };
+
+  const handleOpenSavePending = () => {
+    if (cart.length === 0) return;
+    setPendingNote(selectedCustomer ? selectedCustomer.name : `Meja ${pendingOrders.length + 1}`);
+    setSavePendingOpen(true);
+  };
+
+  const handleConfirmSavePending = () => {
+    savePendingOrder(pendingNote);
+    toast.success('Pesanan berhasil ditahan!');
+    setSavePendingOpen(false);
+  };
+
+  const handleLoadPending = (id: string) => {
+    loadPendingOrder(id);
+    toast.success('Pesanan berhasil dimuat kembali!');
+    setPendingOpen(false);
   };
 
   const handleCheckout = () => {
@@ -485,6 +512,15 @@ export default function POSPage() {
                 <Clock size={12} /> Tutup Shift
               </button>
             )}
+            {pendingOrders.length > 0 && (
+              <button
+                id="btn-view-pending"
+                onClick={() => setPendingOpen(true)}
+                className="text-xs text-amber-400 hover:text-amber-300 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <Clock size={12} /> Ditahan ({pendingOrders.length})
+              </button>
+            )}
             {cart.length > 0 && (
               <button
                 id="btn-clear-cart"
@@ -679,16 +715,30 @@ export default function POSPage() {
             )}
           </div>
 
-          {/* Checkout button */}
-          <button
-            id="btn-checkout"
-            onClick={handleCheckout}
-            disabled={cart.length === 0}
-            className="w-full py-3 rounded-xl bg-success hover:bg-success/90 text-white font-bold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed glow-emerald shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <CreditCard size={16} />
-            Bayar / Konfirmasi Struk
-          </button>
+          {/* Checkout buttons */}
+          <div className="flex gap-2">
+            {cart.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleOpenSavePending}
+                className="flex-1 py-3 border-border/60 text-xs font-semibold cursor-pointer h-auto rounded-xl flex items-center justify-center gap-1.5"
+              >
+                <Clock size={14} /> Tahan
+              </Button>
+            )}
+            <button
+              id="btn-checkout"
+              onClick={handleCheckout}
+              disabled={cart.length === 0}
+              className={cn(
+                "py-3 rounded-xl bg-success hover:bg-success/90 text-white font-bold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed glow-emerald shadow-lg flex items-center justify-center gap-2 cursor-pointer",
+                cart.length > 0 ? "flex-[2]" : "w-full"
+              )}
+            >
+              <CreditCard size={16} />
+              Bayar / Konfirmasi Struk
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1170,6 +1220,127 @@ export default function POSPage() {
         initialVariant={editingCartItem?.selectedVariant}
         initialModifiers={editingCartItem?.selectedModifiers}
       />
+
+      {/* ── Dialog Tahan Tagihan (Save Pending Note) ── */}
+      <Dialog open={savePendingOpen} onOpenChange={setSavePendingOpen}>
+        <DialogContent className="max-w-sm bg-card border-border/60">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-amber-500">
+              <Clock size={16} /> Tahan Pembayaran
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label htmlFor="pending-note-input" className="text-xs font-semibold text-muted-foreground">Catatan / Nama Meja / Nama Pelanggan</label>
+              <Input
+                id="pending-note-input"
+                placeholder="Contoh: Meja 5, Pelanggan Budi..."
+                value={pendingNote}
+                onChange={(e) => setPendingNote(e.target.value)}
+                className="bg-background border-border/60 text-xs"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setSavePendingOpen(false)}
+                className="border-border/60 text-xs"
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={handleConfirmSavePending}
+                disabled={!pendingNote.trim()}
+                className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
+              >
+                Simpan & Tahan
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog List Pending Orders (Daftar Tagihan Ditahan) ── */}
+      <Dialog open={pendingOpen} onOpenChange={setPendingOpen}>
+        <DialogContent className="max-w-lg bg-card border-border/60 max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-amber-500">
+              <Clock size={16} /> Daftar Tagihan Ditahan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {pendingOrders.length === 0 ? (
+              <p className="text-center py-6 text-xs text-muted-foreground">Tidak ada tagihan yang sedang ditahan.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {pendingOrders.map((order) => {
+                  const itemsCount = order.items.reduce((s, i) => s + i.quantity, 0);
+                  const orderTotal = order.items.reduce((sum, item) => {
+                    return sum + (item.product.sellingPrice * item.quantity);
+                  }, 0);
+                  let discountVal = 0;
+                  if (order.customer) {
+                    let memberDiscountPercent = 0;
+                    if (order.customer.tier === 'Gold') memberDiscountPercent = 0.1;
+                    else if (order.customer.tier === 'Silver') memberDiscountPercent = 0.05;
+                    else if (order.customer.tier === 'Bronze') memberDiscountPercent = 0.02;
+                    discountVal = orderTotal * memberDiscountPercent;
+                  }
+                  if (order.activePromo && orderTotal >= order.activePromo.minPurchase && order.activePromo.isActive) {
+                    if (order.activePromo.type === 'Percentage') {
+                      discountVal += orderTotal * (order.activePromo.value / 100);
+                    } else {
+                      discountVal += order.activePromo.value;
+                    }
+                  }
+                  discountVal += order.voucherDiscount + (order.pointsToRedeem * 100);
+                  const subWithDisc = Math.max(0, orderTotal - discountVal);
+                  const taxVal = taxSettings.ppnEnabled ? subWithDisc * taxSettings.ppnRate : 0;
+                  const finalTotal = subWithDisc + taxVal;
+
+                  return (
+                    <div key={order.id} className="p-3 rounded-lg border border-border/40 bg-zinc-950/40 flex justify-between items-center gap-4 hover:border-amber-500/30 transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs text-foreground">{order.note}</span>
+                          <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-500/5 px-1 py-0">{itemsCount} item</Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(order.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} · {order.customer ? `Member: ${order.customer.name}` : 'Umum'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-xs font-mono font-bold text-foreground">{formatIDR(finalTotal)}</span>
+                        <div className="flex gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleLoadPending(order.id)}
+                            className="border-border/60 hover:bg-amber-500/10 hover:text-amber-400 text-[10px] h-8 px-2.5 cursor-pointer font-medium"
+                          >
+                            Buka
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              deletePendingOrder(order.id);
+                              toast.success('Tagihan ditahan berhasil dihapus');
+                            }}
+                            className="text-destructive hover:bg-destructive/10 text-[10px] h-8 px-2.5 cursor-pointer font-medium"
+                          >
+                            Hapus
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

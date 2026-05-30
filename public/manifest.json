@@ -1,0 +1,19 @@
+{
+  "name": "KasirKu Multi-Outlet POS",
+  "short_name": "KasirKu",
+  "description": "Sistem kasir modern berbasis web untuk mengelola penjualan, stok barang, transaksi, dan laporan bisnis multi-outlet di Indonesia.",
+  "start_url": "/pos",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#09090b",
+  "theme_color": "#6366f1",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
